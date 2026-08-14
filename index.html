@@ -209,64 +209,290 @@ modes.forEach(mode => {
   });
 });
 
-function showDemoResult(question) {
-  document.getElementById("questionOutput").textContent =
-    question || "Your question will appear here.";
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
 
-  document.getElementById("confidence").textContent = "—%";
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+
+    reader.readAsDataURL(file);
+  });
+}
+
+function showLoading() {
+  result.classList.remove("hidden");
+
+  document.getElementById("confidence").textContent = "…%";
+  document.getElementById("questionOutput").textContent =
+    "StudyPack AI is solving your question...";
 
   document.getElementById("steps").innerHTML = `
     <div class="step">
-      <b>01</b>
+      <b>AI</b>
       <div>
-        <h3>Understand the problem</h3>
-        <p>Identify what information is given and what the question asks you to find.</p>
-      </div>
-    </div>
-
-    <div class="step">
-      <b>02</b>
-      <div>
-        <h3>Choose the method</h3>
-        <p>Select the rule, formula, or reasoning method that applies to the question.</p>
-      </div>
-    </div>
-
-    <div class="step">
-      <b>03</b>
-      <div>
-        <h3>Show the workings</h3>
-        <p>The AI will explain each calculation or reasoning step instead of only giving the answer.</p>
-      </div>
-    </div>
-
-    <div class="step">
-      <b>04</b>
-      <div>
-        <h3>Check the result</h3>
-        <p>The final response will explain how the answer was checked and mention uncertainty when necessary.</p>
+        <h3>Analyzing your question</h3>
+        <p>Please wait while StudyPack works through it.</p>
       </div>
     </div>
   `;
 
   document.getElementById("answerOutput").textContent =
-    "AI connection will be activated in the next step.";
+    "Working on your answer...";
 
-  result.classList.remove("hidden");
-  result.scrollIntoView({ behavior: "smooth" });
+  result.scrollIntoView({
+    behavior: "smooth"
+  });
 }
 
-document.getElementById("solveBtn").addEventListener("click", () => {
-  showDemoResult(document.getElementById("questionText").value);
-});
+function showError(message) {
+  result.classList.remove("hidden");
 
-document.getElementById("generateBtn").addEventListener("click", () => {
-  showDemoResult(document.getElementById("studyText").value);
-});
+  document.getElementById("confidence").textContent = "—%";
 
-document.getElementById("simplifyBtn").addEventListener("click", () => {
-  alert("The AI will provide a simpler explanation here.");
-});
+  document.getElementById("questionOutput").textContent =
+    "Something went wrong.";
+
+  document.getElementById("steps").innerHTML = `
+    <div class="step">
+      <b>!</b>
+      <div>
+        <h3>AI connection error</h3>
+        <p>${message}</p>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("answerOutput").textContent =
+    "Please try again.";
+
+  result.scrollIntoView({
+    behavior: "smooth"
+  });
+}
+
+function displayResult(data) {
+  document.getElementById("questionOutput").textContent =
+    data.question || "Question detected";
+
+  document.getElementById("confidence").textContent =
+    `${data.confidence ?? 0}%`;
+
+  const steps = document.getElementById("steps");
+
+  steps.innerHTML = "";
+
+  if (Array.isArray(data.steps)) {
+    data.steps.forEach((step, index) => {
+      const div = document.createElement("div");
+
+      div.className = "step";
+
+      div.innerHTML = `
+        <b>${String(index + 1).padStart(2, "0")}</b>
+        <div>
+          <h3>${escapeHtml(step.title || `Step ${index + 1}`)}</h3>
+          <p>${escapeHtml(step.explanation || "")}</p>
+        </div>
+      `;
+
+      steps.appendChild(div);
+    });
+  }
+
+  document.getElementById("answerOutput").textContent =
+    data.answer || "No answer returned.";
+
+  result.classList.remove("hidden");
+
+  result.scrollIntoView({
+    behavior: "smooth"
+  });
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+async function solveQuestion() {
+  const text =
+    document.getElementById("questionText").value.trim();
+
+  const file =
+    document.getElementById("questionFile").files[0];
+
+  const subject =
+    document.getElementById("subject").value;
+
+  const explanation =
+    document.getElementById("explanation").value;
+
+  if (!text && !file) {
+    showError("Please type a question or upload a screenshot.");
+    return;
+  }
+
+  showLoading();
+
+  try {
+    let image = null;
+
+    if (file) {
+      image = await fileToBase64(file);
+    }
+
+    const response = await fetch("/api/solve", {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        question: text,
+        image: image,
+        subject: subject,
+        explanation: explanation
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error || "The AI server returned an error."
+      );
+    }
+
+    displayResult(data);
+
+  } catch (error) {
+    console.error(error);
+
+    showError(
+      error.message ||
+      "Unable to connect to StudyPack AI."
+    );
+  }
+}
+
+document
+  .getElementById("solveBtn")
+  .addEventListener("click", solveQuestion);
+
+document
+  .getElementById("simplifyBtn")
+  .addEventListener("click", async () => {
+
+    const question =
+      document.getElementById("questionOutput").textContent;
+
+    if (!question) return;
+
+    document.getElementById("answerOutput").textContent =
+      "Creating a simpler explanation...";
+
+    try {
+      const response = await fetch("/api/solve", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          question:
+            "Explain this question and its solution much more simply for a student: " +
+            question,
+
+          subject:
+            document.getElementById("subject").value,
+
+          explanation: "Simple"
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Could not simplify the explanation."
+        );
+      }
+
+      displayResult(data);
+
+    } catch (error) {
+      showError(error.message);
+    }
+  });
+
+document
+  .getElementById("generateBtn")
+  .addEventListener("click", async () => {
+
+    const notes =
+      document.getElementById("studyText").value.trim();
+
+    const file =
+      document.getElementById("studyFile").files[0];
+
+    if (!notes && !file) {
+      showError(
+        "Please paste your study material or upload a file."
+      );
+
+      return;
+    }
+
+    showLoading();
+
+    try {
+      let material = notes;
+
+      if (file) {
+        const fileData = await fileToBase64(file);
+
+        material =
+          notes +
+          "\n\nUploaded study material:\n" +
+          fileData;
+      }
+
+      const response = await fetch("/api/solve", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          question:
+            "Create a clear StudyPack from this study material. Summarize the important concepts, explain difficult parts, and teach the student step by step.\n\n" +
+            material,
+
+          subject: "Auto-detect",
+
+          explanation: "Detailed"
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Could not generate StudyPack."
+        );
+      }
+
+      displayResult(data);
+
+    } catch (error) {
+      showError(error.message);
+    }
+  });
 </script>
 
 </body>
