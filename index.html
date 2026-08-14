@@ -316,6 +316,34 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+  document.getElementById("questionFile").addEventListener("change", function () {
+  const file = this.files[0];
+
+  if (!file) return;
+
+  const uploadBox = this.closest(".upload-box");
+
+  let preview = uploadBox.querySelector(".image-preview");
+
+  if (!preview) {
+    preview = document.createElement("img");
+    preview.className = "image-preview";
+
+    preview.style.width = "100%";
+    preview.style.maxHeight = "220px";
+    preview.style.objectFit = "contain";
+    preview.style.borderRadius = "12px";
+    preview.style.marginBottom = "12px";
+
+    uploadBox.prepend(preview);
+  }
+
+  preview.src = URL.createObjectURL(file);
+
+  uploadBox.querySelector("h3").textContent = file.name;
+  uploadBox.querySelector("small").textContent = "Screenshot selected ✓";
+});
+
 async function solveQuestion() {
   const text =
     document.getElementById("questionText").value.trim();
