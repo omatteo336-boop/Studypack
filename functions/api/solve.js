@@ -102,7 +102,8 @@ Return ONLY valid JSON using this structure:
 
     if (!response.ok) {
       return json({
-        error: data?.error || "Hugging Face request failed."
+        error: data?.error || "Analysis temporarily unavailable
+studypack couldn't complete the analysis. Please try again in a moment."
       }, response.status);
     }
 
