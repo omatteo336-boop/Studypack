@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyPack — AI Study Assistant</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <main class="app">
+
+    <header class="topbar">
+      <div class="logo">✦ STUDYPACK</div>
+      <div class="badge">AI STUDY WORKSPACE</div>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow">AI-POWERED LEARNING</div>
+      <h1>STUDY SMARTER.<br><span>UNDERSTAND MORE.</span></h1>
+      <p>
+        Upload your study material or a question and get clear,
+        step-by-step explanations designed to help you actually understand.
+      </p>
+    </section>
+
+    <section class="mode-switch">
+      <button class="mode active" data-mode="study">
+        📚 <strong>Study Material</strong>
+        <small>Notes, PDFs & screenshots</small>
+      </button>
+
+      <button class="mode" data-mode="solve">
+        📸 <strong>Solve a Question</strong>
+        <small>Screenshot or paste a question</small>
+      </button>
+    </section>
+
+    <section id="studyPanel" class="panel">
+      <div class="panel-heading">
+        <div>
+          <span>01 / STUDY MATERIAL</span>
+          <h2>Build your StudyPack</h2>
+        </div>
+        <b>AI READY</b>
+      </div>
+
+      <label class="upload-box">
+        <input id="studyFile" type="file"
+          accept=".pdf,.doc,.docx,.txt,image/*">
+
+        <div class="upload-icon">＋</div>
+        <h3>Upload your study material</h3>
+        <p>PDF • DOCX • TXT • PNG • JPG • WEBP</p>
+        <small>Tap here to choose a file</small>
+      </label>
+
+      <label class="field">
+        Or paste your notes
+        <textarea id="studyText"
+          placeholder="Paste your notes, lesson, or study material here..."></textarea>
+      </label>
+
+      <button id="generateBtn" class="primary">
+        Generate StudyPack →
+      </button>
+    </section>
+
+    <section id="solvePanel" class="panel hidden">
+      <div class="panel-heading">
+        <div>
+          <span>02 / SOLVE A QUESTION</span>
+          <h2>Solve it. Understand it.</h2>
+        </div>
+        <b>SHOW WORKINGS</b>
+      </div>
+
+      <label class="upload-box">
+        <input id="questionFile" type="file"
+          accept="image/*,.pdf">
+
+        <div class="upload-icon">＋</div>
+        <h3>Upload a screenshot of your question</h3>
+        <p>PNG • JPG • WEBP • PDF</p>
+        <small>Tap here to choose a file</small>
+      </label>
+
+      <label class="field">
+        Or type / paste the question
+        <textarea id="questionText"
+          placeholder="Paste the question here..."></textarea>
+      </label>
+
+      <div class="options">
+        <label>
+          Subject
+          <select id="subject">
+            <option>Auto-detect</option>
+            <option>Mathematics</option>
+            <option>Science</option>
+            <option>English</option>
+            <option>History</option>
+          </select>
+        </label>
+
+        <label>
+          Explanation
+          <select id="explanation">
+            <option>Step-by-step</option>
+            <option>Simple</option>
+            <option>Detailed</option>
+          </select>
+        </label>
+      </div>
+
+      <button id="solveBtn" class="primary">
+        Solve & Show Work →
+      </button>
+    </section>
+
+    <section class="features">
+      <div class="section-label">WHAT STUDYPACK CAN DO</div>
+
+      <div class="feature-grid">
+        <article>
+          🧠
+          <h3>Smart Notes</h3>
+          <p>Turn difficult material into clear explanations.</p>
+        </article>
+
+        <article>
+          🃏
+          <h3>Flashcards</h3>
+          <p>Create useful cards for active recall.</p>
+        </article>
+
+        <article>
+          ❓
+          <h3>Practice</h3>
+          <p>Generate questions from what you're studying.</p>
+        </article>
+
+        <article>
+          📝
+          <h3>Quick Quiz</h3>
+          <p>Test yourself and find weak areas.</p>
+        </article>
+
+        <article>
+          💡
+          <h3>Explain Simply</h3>
+          <p>Ask for an easier explanation whenever you're stuck.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="result" class="result hidden">
+      <div class="result-heading">
+        <div>
+          <span>AI RESULT</span>
+          <h2>Here's the solution</h2>
+        </div>
+
+        <div class="confidence">
+          <strong id="confidence">--%</strong>
+          <small>confidence</small>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <span>QUESTION</span>
+        <p id="questionOutput"></p>
+      </div>
+
+      <div id="steps" class="steps"></div>
+
+      <div class="answer-card">
+        <span>✓ FINAL ANSWER</span>
+        <strong id="answerOutput"></strong>
+      </div>
+
+      <button id="simplifyBtn" class="secondary">
+        I still don't understand → Explain it more simply
+      </button>
+    </section>
+
+    <footer>
+      StudyPack • Built to help you understand, not just answer.
+    </footer>
+
+  </main>
+
+<script>
+const modes = document.querySelectorAll(".mode");
+const studyPanel = document.getElementById("studyPanel");
+const solvePanel = document.getElementById("solvePanel");
+const result = document.getElementById("result");
+
+modes.forEach(mode => {
+  mode.addEventListener("click", () => {
+    modes.forEach(m => m.classList.remove("active"));
+    mode.classList.add("active");
+
+    const solve = mode.dataset.mode === "solve";
+
+    studyPanel.classList.toggle("hidden", solve);
+    solvePanel.classList.toggle("hidden", !solve);
+    result.classList.add("hidden");
+  });
+});
+
+function showDemoResult(question) {
+  document.getElementById("questionOutput").textContent =
+    question || "Your question will appear here.";
+
+  document.getElementById("confidence").textContent = "—%";
+
+  document.getElementById("steps").innerHTML = `
+    <div class="step">
+      <b>01</b>
+      <div>
+        <h3>Understand the problem</h3>
+        <p>Identify what information is given and what the question asks you to find.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <b>02</b>
+      <div>
+        <h3>Choose the method</h3>
+        <p>Select the rule, formula, or reasoning method that applies to the question.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <b>03</b>
+      <div>
+        <h3>Show the workings</h3>
+        <p>The AI will explain each calculation or reasoning step instead of only giving the answer.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <b>04</b>
+      <div>
+        <h3>Check the result</h3>
+        <p>The final response will explain how the answer was checked and mention uncertainty when necessary.</p>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("answerOutput").textContent =
+    "AI connection will be activated in the next step.";
+
+  result.classList.remove("hidden");
+  result.scrollIntoView({ behavior: "smooth" });
+}
+
+document.getElementById("solveBtn").addEventListener("click", () => {
+  showDemoResult(document.getElementById("questionText").value);
+});
+
+document.getElementById("generateBtn").addEventListener("click", () => {
+  showDemoResult(document.getElementById("studyText").value);
+});
+
+document.getElementById("simplifyBtn").addEventListener("click", () => {
+  alert("The AI will provide a simpler explanation here.");
+});
+</script>
+
+</body>
+  </html>
