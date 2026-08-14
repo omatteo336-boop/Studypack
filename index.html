@@ -55,6 +55,8 @@
         <small>Tap here to choose a file</small>
       </label>
 
+      <div id="studyPreview" class="file-preview hidden"></div>
+      
       <label class="field">
         Or paste your notes
         <textarea id="studyText"
@@ -344,6 +346,39 @@ function escapeHtml(text) {
   uploadBox.querySelector("small").textContent = "Screenshot selected ✓";
 });
 
+  document.getElementById("studyFile").addEventListener("change", function () {
+  const file = this.files[0];
+
+  if (!file) return;
+
+  const preview = document.getElementById("studyPreview");
+
+  preview.classList.remove("hidden");
+
+  if (file.type.startsWith("image/")) {
+    preview.innerHTML = "";
+
+    const image = document.createElement("img");
+
+    image.src = URL.createObjectURL(file);
+    image.style.width = "100%";
+    image.style.maxHeight = "260px";
+    image.style.objectFit = "contain";
+    image.style.borderRadius = "12px";
+
+    preview.appendChild(image);
+  } else {
+    preview.innerHTML = `
+      <div style="padding:16px;border:1px solid #ffffff18;border-radius:14px;background:#080e15;">
+        📄 <strong>${file.name}</strong>
+        <div style="color:#7f979d;margin-top:6px;font-size:12px;">
+          File selected ✓
+        </div>
+      </div>
+    `;
+  }
+});
+  
 async function solveQuestion() {
   const text =
     document.getElementById("questionText").value.trim();
